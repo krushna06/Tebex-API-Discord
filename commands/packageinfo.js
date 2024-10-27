@@ -30,7 +30,6 @@ export default {
         let description = packageData.description || "No description available.";
         description = description.replace(/<\/?[^>]+(>|$)/g, "");
 
-        // Create the embed
         const embed = new EmbedBuilder()
             .setColor(0x0099ff)
             .setTitle(packageData.name)
