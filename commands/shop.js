@@ -77,7 +77,7 @@ export default {
                 .setDescription('Here are the packages available in this category:')
                 .addFields(packages.map(pkg => ({
                     name: pkg.name,
-                    value: `${pkg.base_price} ${pkg.currency} - [View Package](https://dornox.tebex.io/packages/${pkg.id})`,
+                    value: `${pkg.base_price} ${pkg.currency} - [View Package](https://dornox.tebex.io/package/${pkg.id})`,
                     inline: false
                 })));
 
