@@ -84,13 +84,19 @@ export default {
 
             const data = await response.json();
             const checkoutLink = data.data.links.checkout;
-
+            const totalPrice = data.data.total_price;
+            const currency = data.data.currency;
+            
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
                 .setTitle('Checkout Ready')
-                .setDescription('You can complete your purchase using the link below:')
-                .addFields({ name: 'Checkout Link', value: checkoutLink });
-
+                .setDescription(`You can complete your purchase using the link below:`)
+                .addFields(
+                    { name: 'Username', value: username, inline: true },
+                    { name: 'Total Price', value: `${totalPrice} ${currency}`, inline: true },
+                    { name: 'Checkout Link', value: checkoutLink }
+                );
+            
             await interaction.reply({ embeds: [embed] });
         } catch (error) {
             console.error(error);
