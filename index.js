@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
+import { initializeDatabases } from './database.js';
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { REST, Routes } from 'discord.js';
@@ -13,6 +14,13 @@ await loadCommands(client);
 loadEvents(client);
 
 client.on('ready', async () => {
+
+        try {
+            await initializeDatabases();
+            console.log('Databases initialized successfully.');
+        } catch (error) {
+            console.error('Error initializing databases:', error);
+        }
 
     const commandData = client.commands.map(command => command.data.toJSON());
 

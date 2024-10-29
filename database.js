@@ -34,6 +34,7 @@ async function initializeCartDatabase() {
             CREATE TABLE IF NOT EXISTS cart (
                 discord_id TEXT,
                 package_id INTEGER,
+                basket_ident TEXT,  -- Add the basket_ident column
                 PRIMARY KEY (discord_id, package_id)
             )
         `);

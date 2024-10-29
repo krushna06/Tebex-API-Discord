@@ -64,6 +64,8 @@ export default {
         try {
             const ident = await createBasket(TEBEX_TOKEN, username);
 
+            await cartDb.run('UPDATE cart SET basket_ident = ? WHERE discord_id = ?', [ident, interaction.user.id]);
+
             const url = `https://headless.tebex.io/api/baskets/${ident}/packages`;
 
             const packageAddPromises = cartItems.map(async (item) => {
