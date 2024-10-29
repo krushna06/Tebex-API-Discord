@@ -3,8 +3,6 @@ import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 
-const PACKAGE_ID = 6382065;
-
 async function createBasket(token, username) {
     const url = `https://headless.tebex.io/api/accounts/${token}/baskets`;
 
@@ -45,8 +43,8 @@ export default {
     async execute(interaction) {
         const TEBEX_TOKEN = process.env.TEBEX_TOKEN;
 
-        const db = await open({ filename: './database/users.sqlite', driver: sqlite3.Database });
-        const user = await db.get('SELECT minecraft_username FROM users WHERE discord_id = ?', [interaction.user.id]);
+        const usersDb = await open({ filename: './database/users.sqlite', driver: sqlite3.Database });
+        const user = await usersDb.get('SELECT minecraft_username FROM users WHERE discord_id = ?', [interaction.user.id]);
 
         if (!user) {
             return interaction.reply({ content: 'You need to log in with your Minecraft username using the /login command first.', ephemeral: true });
@@ -54,13 +52,23 @@ export default {
 
         const username = user.minecraft_username;
 
+        const cartDb = await open({ filename: './database/cart.sqlite', driver: sqlite3.Database });
+        const cartItem = await cartDb.get('SELECT package_id FROM cart WHERE discord_id = ?', [interaction.user.id]);
+
+        if (!cartItem) {
+            return interaction.reply({ content: 'Your cart is empty. Please add a package using the /addtocart command.', ephemeral: true });
+        }
+
+        const packageId = cartItem.package_id;
+
         try {
+            // Create a new basket and get the ident
             const ident = await createBasket(TEBEX_TOKEN, username);
 
             const url = `https://headless.tebex.io/api/baskets/${ident}/packages`;
 
             const packageData = {
-                package_id: PACKAGE_ID,
+                package_id: packageId,
                 quantity: 1,
                 username: username
             };
@@ -86,21 +94,24 @@ export default {
             const checkoutLink = data.data.links.checkout;
             const totalPrice = data.data.total_price;
             const currency = data.data.currency;
-            
+
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
                 .setTitle('Checkout Ready')
-                .setDescription(`You can complete your purchase using the link below:`)
+                .setDescription('You can complete your purchase using the link below:')
                 .addFields(
                     { name: 'Username', value: username, inline: true },
                     { name: 'Total Price', value: `${totalPrice} ${currency}`, inline: true },
                     { name: 'Checkout Link', value: checkoutLink }
                 );
-            
+
             await interaction.reply({ embeds: [embed] });
         } catch (error) {
             console.error(error);
             await interaction.reply({ content: error.message, ephemeral: true });
+        } finally {
+            await usersDb.close();
+            await cartDb.close();
         }
     }
 };
