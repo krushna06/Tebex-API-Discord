@@ -1,5 +1,7 @@
 import fetch from 'node-fetch';
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
 
 const PACKAGE_ID = 6382065;
 
@@ -42,17 +44,25 @@ export default {
 
     async execute(interaction) {
         const TEBEX_TOKEN = process.env.TEBEX_TOKEN;
-        const username = interaction.user.username;
+
+        const db = await open({ filename: './database/users.sqlite', driver: sqlite3.Database });
+        const user = await db.get('SELECT minecraft_username FROM users WHERE discord_id = ?', [interaction.user.id]);
+
+        if (!user) {
+            return interaction.reply({ content: 'You need to log in with your Minecraft username using the /login command first.', ephemeral: true });
+        }
+
+        const username = user.minecraft_username;
 
         try {
-            // Create a new basket and get the ident
             const ident = await createBasket(TEBEX_TOKEN, username);
 
-            const url = `https://headless.tebex.io/api/baskets/${ident}/packages?username=${username}`;
+            const url = `https://headless.tebex.io/api/baskets/${ident}/packages`;
 
             const packageData = {
                 package_id: PACKAGE_ID,
-                quantity: 1
+                quantity: 1,
+                username: username
             };
 
             console.log('Adding package to basket:', packageData);
