@@ -53,47 +53,51 @@ export default {
         const username = user.minecraft_username;
 
         const cartDb = await open({ filename: './database/cart.sqlite', driver: sqlite3.Database });
-        const cartItem = await cartDb.get('SELECT package_id FROM cart WHERE discord_id = ?', [interaction.user.id]);
+        const cartItems = await cartDb.all('SELECT package_id FROM cart WHERE discord_id = ?', [interaction.user.id]);
 
-        if (!cartItem) {
+        if (cartItems.length === 0) {
             return interaction.reply({ content: 'Your cart is empty. Please add a package using the /addtocart command.', ephemeral: true });
         }
 
-        const packageId = cartItem.package_id;
+        await interaction.deferReply();
 
         try {
-            // Create a new basket and get the ident
             const ident = await createBasket(TEBEX_TOKEN, username);
 
             const url = `https://headless.tebex.io/api/baskets/${ident}/packages`;
 
-            const packageData = {
-                package_id: packageId,
-                quantity: 1,
-                username: username
-            };
+            const packageAddPromises = cartItems.map(async (item) => {
+                const packageData = {
+                    package_id: item.package_id,
+                    quantity: 1,
+                    username: username
+                };
 
-            console.log('Adding package to basket:', packageData);
+                console.log('Adding package to basket:', packageData);
 
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${TEBEX_TOKEN}`
-                },
-                body: JSON.stringify(packageData)
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${TEBEX_TOKEN}`
+                    },
+                    body: JSON.stringify(packageData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.log('Error response from adding package:', errorData);
+                    throw new Error(`Failed to add package ID ${item.package_id} to the basket: ${errorData.message || response.statusText}`);
+                }
+
+                return await response.json();
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.log('Error response from adding package:', errorData);
-                return interaction.reply({ content: `Failed to add package to the basket: ${errorData.message || response.statusText}`, ephemeral: true });
-            }
+            const results = await Promise.all(packageAddPromises);
 
-            const data = await response.json();
-            const checkoutLink = data.data.links.checkout;
-            const totalPrice = data.data.total_price;
-            const currency = data.data.currency;
+            const checkoutLink = results[0].data.links.checkout;
+            const totalPrice = results.reduce((total, res) => total + res.data.total_price, 0);
+            const currency = results[0].data.currency;
 
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
@@ -105,10 +109,10 @@ export default {
                     { name: 'Checkout Link', value: checkoutLink }
                 );
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: error.message, ephemeral: true });
+            await interaction.editReply({ content: error.message, ephemeral: true });
         } finally {
             await usersDb.close();
             await cartDb.close();

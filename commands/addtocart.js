@@ -6,7 +6,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('addtocart')
         .setDescription('Add a package ID to your cart.')
-        .addIntegerOption(option => 
+        .addIntegerOption(option =>
             option.setName('package_id')
                 .setDescription('The ID of the package to add to the cart')
                 .setRequired(true)),
@@ -25,13 +25,28 @@ export default {
             )
         `);
 
-        await db.run('INSERT OR REPLACE INTO cart (discord_id, package_id) VALUES (?, ?)', [discordId, packageId]);
+        try {
+            await db.run('INSERT INTO cart (discord_id, package_id) VALUES (?, ?)', [discordId, packageId]);
+            const embed = new EmbedBuilder()
+                .setColor(0x0099ff)
+                .setTitle('Package Added to Cart')
+                .setDescription(`Package ID **${packageId}** has been added to your cart.`);
 
-        const embed = new EmbedBuilder()
-            .setColor(0x0099ff)
-            .setTitle('Package Added to Cart')
-            .setDescription(`Package ID **${packageId}** has been added to your cart.`);
+            await interaction.reply({ embeds: [embed] });
+        } catch (error) {
+            if (error.code === 'SQLITE_CONSTRAINT') {
+                const embed = new EmbedBuilder()
+                    .setColor(0xff0000)
+                    .setTitle('Package Already in Cart')
+                    .setDescription(`Package ID **${packageId}** is already in your cart.`);
 
-        await interaction.reply({ embeds: [embed] });
+                await interaction.reply({ embeds: [embed] });
+            } else {
+                console.error('Error adding package to cart:', error);
+                await interaction.reply({ content: 'There was an error adding the package to your cart. Please try again.', ephemeral: true });
+            }
+        } finally {
+            await db.close();
+        }
     }
 };
