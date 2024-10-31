@@ -2,6 +2,16 @@ import fetch from 'node-fetch';
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
+function formatDescription(html) {
+    let formatted = html.replace(/<\/?p>/g, '\n');
+
+    formatted = formatted.replace(/<img [^>]*src="([^"]+)"[^>]*>/g, '[Image Link]($1)');
+
+    formatted = formatted.replace(/<[^>]+>/g, '');
+
+    return formatted.trim();
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('shop')
@@ -45,9 +55,7 @@ export default {
             .setColor(0x0099ff)
             .setTitle('Categories')
             .setDescription('Browse through the categories below and select one to view packages.')
-            .addFields(
-                { name: 'Available Categories', value: categoryList }
-            );
+            .addFields({ name: 'Available Categories', value: categoryList });
 
         const row = new ActionRowBuilder().addComponents(buttons);
 
@@ -57,30 +65,70 @@ export default {
         const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
 
         collector.on('collect', async (btnInteraction) => {
-            const categoryId = btnInteraction.customId.split('_')[1];
-            const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+            const customIdParts = btnInteraction.customId.split('_');
 
-            if (!selectedCategory || !selectedCategory.packages) {
-                return btnInteraction.reply({ content: 'No packages found for this category.', ephemeral: true });
+            if (customIdParts[0] === 'category') {
+                const categoryId = customIdParts[1];
+                const selectedCategory = categories.find(cat => cat.id.toString() === categoryId);
+
+                if (!selectedCategory || !selectedCategory.packages || selectedCategory.packages.length === 0) {
+                    return btnInteraction.reply({ content: 'No packages found for this category.', ephemeral: true });
+                }
+
+                const packageButtons = [];
+                const packageListEmbed = new EmbedBuilder()
+                    .setColor(0x0099ff)
+                    .setTitle(`Packages in Category: ${selectedCategory.name}`)
+                    .setDescription('Select a package below to view more details.');
+
+                selectedCategory.packages.forEach((pkg, index) => {
+                    packageListEmbed.addFields({
+                        name: `${index + 1}. ${pkg.name}`,
+                        value: `${pkg.base_price} ${pkg.currency} - [View Package](https://dornox.tebex.io/package/${pkg.id})`
+                    });
+
+                    packageButtons.push(
+                        new ButtonBuilder()
+                            .setCustomId(`package_${pkg.id}`)
+                            .setLabel((index + 1).toString())
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+                });
+
+                const packageRow = new ActionRowBuilder().addComponents(packageButtons);
+
+                await btnInteraction.reply({ embeds: [packageListEmbed], components: [packageRow], ephemeral: true });
             }
 
-            const { packages } = selectedCategory;
+            if (customIdParts[0] === 'package') {
+                const packageId = customIdParts[1];
+                const selectedCategory = categories.find(cat => cat.packages.some(pkg => pkg.id.toString() === packageId));
+                const selectedPackage = selectedCategory.packages.find(pkg => pkg.id.toString() === packageId);
 
-            if (packages.length === 0) {
-                return btnInteraction.reply({ content: 'No packages found in this category.', ephemeral: true });
+                if (!selectedPackage) {
+                    return btnInteraction.reply({ content: 'Package details could not be found.', ephemeral: true });
+                }
+
+                const formattedDescription = formatDescription(selectedPackage.description || 'No description available.');
+                const packageImage = selectedPackage.image || null;
+
+                const packageDetailEmbed = new EmbedBuilder()
+                    .setColor(0x0099ff)
+                    .setTitle(`Package: ${selectedPackage.name}`)
+                    .setDescription(formattedDescription)
+                    .addFields(
+                        { name: 'Price', value: `${selectedPackage.base_price} ${selectedPackage.currency}`, inline: true },
+                        { name: 'Category', value: selectedPackage.category.name, inline: true },
+                        { name: 'Created At', value: new Date(selectedPackage.created_at).toLocaleDateString(), inline: false }
+                    )
+                    .setFooter({ text: `ID: ${selectedPackage.id}` });
+
+                if (packageImage) {
+                    packageDetailEmbed.setImage(packageImage);
+                }
+
+                await btnInteraction.reply({ embeds: [packageDetailEmbed], ephemeral: true });
             }
-
-            const packageEmbed = new EmbedBuilder()
-                .setColor(0x0099ff)
-                .setTitle(`Packages in Category: ${selectedCategory.name}`)
-                .setDescription('Here are the packages available in this category:')
-                .addFields(packages.map(pkg => ({
-                    name: pkg.name,
-                    value: `${pkg.base_price} ${pkg.currency} - [View Package](https://dornox.tebex.io/package/${pkg.id})`,
-                    inline: false
-                })));
-
-            await btnInteraction.reply({ embeds: [packageEmbed], ephemeral: true });
         });
 
         collector.on('end', async () => {
