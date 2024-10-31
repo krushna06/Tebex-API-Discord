@@ -26,33 +26,32 @@ export default {
             return interaction.reply({ content: 'No categories found.', ephemeral: true });
         }
 
-        const embeds = [];
         const buttons = [];
+        let categoryList = '';
 
-        categories.forEach((category) => {
+        categories.forEach((category, index) => {
             const { id, name } = category;
-
-            const embed = new EmbedBuilder()
-                .setColor(0x0099ff)
-                .setTitle(name)
-                .setDescription('Click a button to view packages in this category.')
-                .addFields(
-                    { name: 'ID', value: id.toString(), inline: true }
-                );
-
-            embeds.push(embed);
+            categoryList += `${index + 1}. ${name}\n`;
 
             buttons.push(
                 new ButtonBuilder()
                     .setCustomId(`category_${id}`)
-                    .setLabel(name)
+                    .setLabel((index + 1).toString())
                     .setStyle(ButtonStyle.Primary)
             );
         });
 
+        const embed = new EmbedBuilder()
+            .setColor(0x0099ff)
+            .setTitle('Categories')
+            .setDescription('Browse through the categories below and select one to view packages.')
+            .addFields(
+                { name: 'Available Categories', value: categoryList }
+            );
+
         const row = new ActionRowBuilder().addComponents(buttons);
 
-        await interaction.reply({ embeds: [embeds[0]], components: [row] });
+        await interaction.reply({ embeds: [embed], components: [row] });
 
         const filter = (btnInteraction) => btnInteraction.user.id === interaction.user.id;
         const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
