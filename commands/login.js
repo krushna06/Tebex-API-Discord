@@ -1,27 +1,26 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('login')
-        .setDescription('Log in with your Minecraft username')
-        .addStringOption(option =>
-            option.setName('username')
-                .setDescription('Your Minecraft username')
-                .setRequired(true)
-        ),
+        .setDescription('Log in with your Minecraft username'),
 
     async execute(interaction) {
-        const username = interaction.options.getString('username');
+        const modal = new ModalBuilder()
+            .setCustomId('loginModal')
+            .setTitle('Minecraft Login');
 
-        const db = await open({ filename: './database/users.sqlite', driver: sqlite3.Database });
+        const usernameInput = new TextInputBuilder()
+            .setCustomId('username')
+            .setLabel("Enter your Minecraft username")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true);
 
-        await db.run('INSERT OR REPLACE INTO users (discord_id, minecraft_username) VALUES (?, ?)', [interaction.user.id, username]);
+        const actionRow = new ActionRowBuilder().addComponents(usernameInput);
+        modal.addComponents(actionRow);
 
-        await interaction.reply({
-            content: `Your Minecraft username **${username}** has been saved!`,
-            ephemeral: true
-        });
+        await interaction.showModal(modal);
     }
 };
