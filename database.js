@@ -32,10 +32,8 @@ async function initializeCartDatabase() {
 
         await cartDb.exec(`
             CREATE TABLE IF NOT EXISTS cart (
-                discord_id TEXT,
-                package_id INTEGER,
-                basket_ident TEXT,  -- Add the basket_ident column
-                PRIMARY KEY (discord_id, package_id)
+                discord_id TEXT PRIMARY KEY,
+                basket_ident TEXT NOT NULL
             )
         `);
         console.log('Cart table created or already exists.');

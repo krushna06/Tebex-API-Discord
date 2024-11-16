@@ -19,14 +19,39 @@ export default {
 
         await db.exec(`
             CREATE TABLE IF NOT EXISTS cart (
-                discord_id TEXT,
-                package_id INTEGER,
-                PRIMARY KEY (discord_id, package_id)
+                discord_id TEXT PRIMARY KEY,
+                basket_ident TEXT NOT NULL
             )
         `);
 
         try {
-            await db.run('INSERT INTO cart (discord_id, package_id) VALUES (?, ?)', [discordId, packageId]);
+            const row = await db.get('SELECT basket_ident FROM cart WHERE discord_id = ?', [discordId]);
+
+            let basket;
+            if (row) {
+                basket = JSON.parse(row.basket_ident);
+                if (basket.includes(packageId)) {
+                    const embed = new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle('Package Already in Cart')
+                        .setDescription(`Package ID **${packageId}** is already in your cart.`);
+
+                    await interaction.reply({ embeds: [embed] });
+                    return;
+                }
+            } else {
+                basket = [];
+            }
+
+            basket.push(packageId);
+
+            const basketString = JSON.stringify(basket);
+            if (row) {
+                await db.run('UPDATE cart SET basket_ident = ? WHERE discord_id = ?', [basketString, discordId]);
+            } else {
+                await db.run('INSERT INTO cart (discord_id, basket_ident) VALUES (?, ?)', [discordId, basketString]);
+            }
+
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
                 .setTitle('Package Added to Cart')
@@ -34,17 +59,8 @@ export default {
 
             await interaction.reply({ embeds: [embed] });
         } catch (error) {
-            if (error.code === 'SQLITE_CONSTRAINT') {
-                const embed = new EmbedBuilder()
-                    .setColor(0xff0000)
-                    .setTitle('Package Already in Cart')
-                    .setDescription(`Package ID **${packageId}** is already in your cart.`);
-
-                await interaction.reply({ embeds: [embed] });
-            } else {
-                console.error('Error adding package to cart:', error);
-                await interaction.reply({ content: 'There was an error adding the package to your cart. Please try again.', ephemeral: true });
-            }
+            console.error('Error adding package to cart:', error);
+            await interaction.reply({ content: 'There was an error adding the package to your cart. Please try again.', ephemeral: true });
         } finally {
             await db.close();
         }

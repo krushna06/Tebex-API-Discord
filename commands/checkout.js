@@ -53,10 +53,16 @@ export default {
         const username = user.minecraft_username;
 
         const cartDb = await open({ filename: './database/cart.sqlite', driver: sqlite3.Database });
-        const cartItems = await cartDb.all('SELECT package_id FROM cart WHERE discord_id = ?', [interaction.user.id]);
+        const row = await cartDb.get('SELECT basket_ident FROM cart WHERE discord_id = ?', [interaction.user.id]);
 
-        if (cartItems.length === 0) {
-            return interaction.reply({ content: 'Your cart is empty. Please add a package using the /addtocart command.', ephemeral: true });
+        if (!row || !row.basket_ident) {
+            return interaction.reply({ content: 'Your cart is empty. Please add packages using the /addtocart command.', ephemeral: true });
+        }
+
+        const packageIds = JSON.parse(row.basket_ident);
+
+        if (packageIds.length === 0) {
+            return interaction.reply({ content: 'Your cart is empty. Please add packages using the /addtocart command.', ephemeral: true });
         }
 
         await interaction.deferReply();
@@ -64,13 +70,11 @@ export default {
         try {
             const ident = await createBasket(TEBEX_TOKEN, username);
 
-            await cartDb.run('UPDATE cart SET basket_ident = ? WHERE discord_id = ?', [ident, interaction.user.id]);
-
             const url = `https://headless.tebex.io/api/baskets/${ident}/packages`;
 
-            const packageAddPromises = cartItems.map(async (item) => {
+            const packageAddPromises = packageIds.map(async (packageId) => {
                 const packageData = {
-                    package_id: item.package_id,
+                    package_id: packageId,
                     quantity: 1,
                     username: username
                 };
@@ -89,7 +93,7 @@ export default {
                 if (!response.ok) {
                     const errorData = await response.json();
                     console.log('Error response from adding package:', errorData);
-                    throw new Error(`Failed to add package ID ${item.package_id} to the basket: ${errorData.message || response.statusText}`);
+                    throw new Error(`Failed to add package ID ${packageId} to the basket: ${errorData.message || response.statusText}`);
                 }
 
                 return await response.json();
