@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getBasketDetails } = require('../apiHandlers/packageHandler');
 const { getMinecraftUsername } = require('../utility/databaseHandler');
+const { fetchMinecraftProfile } = require('../apiHandlers/profileHandler');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -37,14 +38,14 @@ module.exports = {
             const basketIdent = row.basket_ident;
 
             const basketDetails = await getBasketDetails(basketIdent);
-
-            // Extract total price and other necessary information
             const totalPrice = basketDetails.total_price;
             const packages = basketDetails.packages.map(pkg => `${pkg.name} (x${pkg.in_basket.quantity})`).join('\n');
+            const { profilePictureUrl } = await fetchMinecraftProfile(minecraftUsername);
 
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('Your Tebex Basket')
+                .setThumbnail(profilePictureUrl)
                 .addFields(
                     { name: 'Username', value: minecraftUsername, inline: true },
                     { name: 'Total Price', value: `$${totalPrice.toFixed(2)}`, inline: true },
