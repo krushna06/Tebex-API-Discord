@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { getMinecraftUsername } = require('../utility/databaseHandler');
+const { getMinecraftUsername, getBasketIdent } = require('../utility/databaseHandler');
+const { generateCheckoutLink } = require('../apiHandlers/checkoutHandler');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,26 +19,16 @@ module.exports = {
                 return interaction.editReply('Your username is not linked. Please use /login first.');
             }
 
-            const row = await new Promise((resolve, reject) => {
-                db.get(
-                    `SELECT basket_ident FROM users WHERE discord_user_id = ?`,
-                    [discordUserId],
-                    (err, row) => {
-                        if (err) reject(err);
-                        else resolve(row);
-                    }
-                );
-            });
+            const basketIdent = await getBasketIdent(db, discordUserId);
 
-            if (!row || !row.basket_ident) {
+            if (!basketIdent) {
                 return interaction.editReply('No basket found for your account. Please link your account first.');
             }
 
-            const basketIdent = row.basket_ident;
-            const checkoutLink = `https://pay.tebex.io/${basketIdent}`;
+            const checkoutLink = await generateCheckoutLink(basketIdent);
 
             interaction.editReply({
-                content: `Here is your checkout link for your cart: [Checkout Link](${checkoutLink})`
+                content: `Here is your checkout link for your basket: [Checkout Link](${checkoutLink})`
             });
         } catch (error) {
             console.error('Error executing /checkout command:', error);

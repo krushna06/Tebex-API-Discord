@@ -50,4 +50,21 @@ async function getMinecraftUsername(db, discordUserId) {
     });
 }
 
-module.exports = { initDatabase, saveUser, getMinecraftUsername };
+async function getBasketIdent(db, discordUserId) {
+    return new Promise((resolve, reject) => {
+        db.get(
+            `SELECT basket_ident FROM users WHERE discord_user_id = ?`,
+            [discordUserId],
+            (err, row) => {
+                if (err) {
+                    console.error('Error fetching basket_ident:', err.message);
+                    reject(err);
+                } else {
+                    resolve(row ? row.basket_ident : null);
+                }
+            }
+        );
+    });
+}
+
+module.exports = { initDatabase, saveUser, getMinecraftUsername, getBasketIdent };
