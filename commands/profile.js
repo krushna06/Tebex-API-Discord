@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getMinecraftUsername } = require('../utility/databaseHandler');
-const axios = require('axios');
+const { fetchMinecraftProfile } = require('../apiHandlers/profileHandler');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -24,42 +24,35 @@ module.exports = {
                 return interaction.reply({ content: 'You need to link your Minecraft account using /login first.', ephemeral: true });
             }
 
-            const userData = await axios.get(`https://api.mojang.com/users/profiles/minecraft/${minecraftUsername}`);
-            
-            if (userData.data) {
-                const uuid = userData.data.id;
-                const profilePictureUrl = `https://mc-heads.net/avatar/${uuid}`;
-                
-                const profileEmbed = {
-                    color: 0x00FF00,
-                    title: `${minecraftUsername}'s Minecraft Profile`,
-                    thumbnail: {
-                        url: profilePictureUrl,
-                    },
-                    fields: [
-                        {
-                            name: 'Minecraft UUID',
-                            value: uuid,
-                            inline: true,
-                        },
-                        {
-                            name: 'Profile Picture',
-                            value: `[Click to view](${profilePictureUrl})`,
-                            inline: true,
-                        },
-                    ],
-                    footer: {
-                        text: 'Minecraft Profile Information',
-                    },
-                };
+            const { uuid, profilePictureUrl } = await fetchMinecraftProfile(minecraftUsername);
 
-                await interaction.reply({ embeds: [profileEmbed] });
-            } else {
-                await interaction.reply({ content: 'Minecraft username not found. Please ensure your account is linked with /login.', ephemeral: true });
-            }
+            const profileEmbed = {
+                color: 0x00FF00,
+                title: `${minecraftUsername}'s Minecraft Profile`,
+                thumbnail: {
+                    url: profilePictureUrl,
+                },
+                fields: [
+                    {
+                        name: 'Minecraft UUID',
+                        value: uuid,
+                        inline: true,
+                    },
+                    {
+                        name: 'Profile Picture',
+                        value: `[Click to view](${profilePictureUrl})`,
+                        inline: true,
+                    },
+                ],
+                footer: {
+                    text: 'Minecraft Profile Information',
+                },
+            };
+
+            await interaction.reply({ embeds: [profileEmbed] });
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: 'An error occurred while fetching the Minecraft profile. Please try again later.', ephemeral: true });
+            await interaction.reply({ content: error.message, ephemeral: true });
         }
     },
 };
