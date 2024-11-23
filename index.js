@@ -1,40 +1,31 @@
-import { Client, GatewayIntentBits } from 'discord.js';
-import dotenv from 'dotenv';
-import { initializeDatabases } from './database.js';
-import { loadCommands } from './handlers/commandHandler.js';
-import { loadEvents } from './handlers/eventHandler.js';
-import { REST, Routes } from 'discord.js';
-
-dotenv.config();
+require('dotenv').config();
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+const { initDatabase } = require('./utility/databaseHandler');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
-await loadCommands(client);
-loadEvents(client);
+client.commands = new Collection();
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-client.on('ready', async () => {
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.data.name, command);
+}
 
-        try {
-            await initializeDatabases();
-            console.log('Databases initialized successfully.');
-        } catch (error) {
-            console.error('Error initializing databases:', error);
-        }
+const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 
-    const commandData = client.commands.map(command => command.data.toJSON());
-
-    const rest = new REST({ version: '9' }).setToken(BOT_TOKEN);
-
-    try {
-        await rest.put(
-            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
-            { body: commandData },
-        );
-        console.log('Registered the slash commands.');
-    } catch (error) {
-        console.error('Error registering commands:', error);
+for (const file of eventFiles) {
+    const event = require(`./events/${file}`);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args, client));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args, client));
     }
-});
+}
 
-client.login(BOT_TOKEN);
+const dbPath = path.resolve(__dirname, 'database', 'users.sqlite');
+client.db = initDatabase(dbPath);
+
+client.login(process.env.TOKEN);

@@ -1,26 +1,33 @@
-import { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
+const { SlashCommandBuilder } = require('discord.js');
+const { createBasket } = require('../apiHandlers/loginHandler');
+const { saveUser } = require('../utility/databaseHandler');
 
-export default {
+module.exports = {
     data: new SlashCommandBuilder()
         .setName('login')
-        .setDescription('Log in with your Minecraft username'),
-
+        .setDescription('Link your Minecraft username with your Discord account.')
+        .addStringOption(option =>
+            option.setName('username')
+                .setDescription('Your Minecraft username')
+                .setRequired(true)
+        ),
     async execute(interaction) {
-        const modal = new ModalBuilder()
-            .setCustomId('loginModal')
-            .setTitle('Minecraft Login');
+        const username = interaction.options.getString('username');
+        const discordUserId = interaction.user.id;
 
-        const usernameInput = new TextInputBuilder()
-            .setCustomId('username')
-            .setLabel("Enter your Minecraft username")
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
+        try {
+            const basketIdent = await createBasket(username);
 
-        const actionRow = new ActionRowBuilder().addComponents(usernameInput);
-        modal.addComponents(actionRow);
+            if (basketIdent) {
+                await saveUser(interaction.client.db, discordUserId, username, basketIdent);
 
-        await interaction.showModal(modal);
+                interaction.reply({ content: `Username linked! Basket ID: ${basketIdent}`, ephemeral: true });
+            } else {
+                interaction.reply({ content: 'Failed to fetch data from the API.', ephemeral: true });
+            }
+        } catch (error) {
+            console.error(error);
+            interaction.reply({ content: 'An error occurred while processing your request.', ephemeral: true });
+        }
     }
 };

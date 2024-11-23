@@ -1,9 +1,17 @@
-import { Events } from 'discord.js';
-import { handleInteraction } from '../handlers/interactionHandler.js';
+module.exports = {
+    name: 'interactionCreate',
+    async execute(interaction, client) {
+        if (!interaction.isCommand()) return;
 
-export default {
-    name: Events.InteractionCreate,
-    async execute(interaction) {
-        await handleInteraction(interaction.client, interaction);
+        const command = client.commands.get(interaction.commandName);
+
+        if (!command) return;
+
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            interaction.reply({ content: 'There was an error executing this command!', ephemeral: true });
+        }
     }
 };
