@@ -1,0 +1,28 @@
+const axios = require('axios');
+
+async function addPackageToBasket(basketIdent, packageId, quantity) {
+    try {
+        const apiKey = process.env.TEBEX_API_KEY;
+        const response = await axios.post(
+            `${process.env.BASE_URL}/baskets/${basketIdent}/packages`,
+            { package_id: packageId, quantity },
+            {
+                headers: {
+                    'X-Authorization': apiKey,
+                },
+                timeout: 5000,
+            }
+        );
+
+        if (response.data && response.data.data) {
+            return response.data.data;
+        } else {
+            throw new Error('Invalid API response');
+        }
+    } catch (error) {
+        console.error('Error adding package to basket:', error.message);
+        throw error;
+    }
+}
+
+module.exports = { addPackageToBasket };
