@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { applyCreatorCode } = require('../creatorCodeHandler');
+const { applyCreatorCode } = require('../apiHandlers/creatorCodeHandler');
 
 module.exports = {
     data: new SlashCommandBuilder()

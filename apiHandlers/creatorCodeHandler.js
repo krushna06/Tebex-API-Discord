@@ -6,7 +6,7 @@ module.exports = {
             throw new Error('Tebex API token is missing.');
         }
 
-        const { getBasketIdent } = require('./utility/databaseHandler');
+        const { getBasketIdent } = require('../utility/databaseHandler');
         const basketIdent = await getBasketIdent(db, discordUserId);
 
         if (!basketIdent) {
@@ -27,6 +27,36 @@ module.exports = {
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while applying the creator code.';
             console.error('Error applying creator code:', error);
+            throw new Error(errorMessage);
+        }
+    },
+
+    async removeCreatorCode({ discordUserId, db, token }) {
+        if (!token) {
+            throw new Error('Tebex API token is missing.');
+        }
+
+        const { getBasketIdent } = require('../utility/databaseHandler');
+        const basketIdent = await getBasketIdent(db, discordUserId);
+
+        if (!basketIdent) {
+            throw new Error('No basket found for your account. Please link your account first.');
+        }
+
+        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/creator-codes/remove`;
+
+        try {
+            const response = await axios.post(apiUrl, {}, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tebex-Secret': token,
+                },
+            });
+
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while removing the creator code.';
+            console.error('Error removing creator code:', error);
             throw new Error(errorMessage);
         }
     },
