@@ -1,0 +1,33 @@
+const axios = require('axios');
+
+module.exports = {
+    async applyCreatorCode({ discordUserId, creatorCode, db, token }) {
+        if (!token) {
+            throw new Error('Tebex API token is missing.');
+        }
+
+        const { getBasketIdent } = require('./utility/databaseHandler');
+        const basketIdent = await getBasketIdent(db, discordUserId);
+
+        if (!basketIdent) {
+            throw new Error('No basket found for your account. Please link your account first.');
+        }
+
+        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/creator-codes`;
+
+        try {
+            const response = await axios.post(apiUrl, { creator_code: creatorCode }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tebex-Secret': token,
+                },
+            });
+
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while applying the creator code.';
+            console.error('Error applying creator code:', error);
+            throw new Error(errorMessage);
+        }
+    },
+};
