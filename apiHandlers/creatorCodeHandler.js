@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 module.exports = {
-    async applyCreatorCode({ discordUserId, creatorCode, db, token }) {
+    async applyCreatorCode({ discordUserId, creatorCode, db, token, interaction }) {
         if (!token) {
             throw new Error('Tebex API token is missing.');
         }
@@ -10,7 +10,8 @@ module.exports = {
         const basketIdent = await getBasketIdent(db, discordUserId);
 
         if (!basketIdent) {
-            throw new Error('No basket found for your account. Please link your account first.');
+            interaction.reply({ content: 'No basket found for your account. Please log in first using the `/login` command.', ephemeral: true });
+            return;
         }
 
         const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/creator-codes`;

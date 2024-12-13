@@ -20,7 +20,7 @@ module.exports = {
         try {
             const db = interaction.client.db;
 
-            const result = await applyCreatorCode({ discordUserId, creatorCode, db, token });
+            const result = await applyCreatorCode({ discordUserId, creatorCode, db, token, interaction });
 
             interaction.editReply(`Successfully applied creator code: ${creatorCode}.`);
         } catch (error) {
