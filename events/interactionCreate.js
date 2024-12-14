@@ -9,6 +9,10 @@ module.exports = {
 
         try {
             await command.execute(interaction);
+
+            if (interaction.commandName === 'login') {
+                client.userLoginTimestamps.set(interaction.user.id, Date.now());
+            }
         } catch (error) {
             console.error(error);
             await interaction.reply({

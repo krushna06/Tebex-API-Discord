@@ -67,4 +67,21 @@ async function getBasketIdent(db, discordUserId) {
     });
 }
 
-module.exports = { initDatabase, saveUser, getMinecraftUsername, getBasketIdent };
+async function removeUser(db, discordUserId) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            `DELETE FROM users WHERE discord_user_id = ?`,
+            [discordUserId],
+            (err) => {
+                if (err) {
+                    console.error('Error removing user:', err.message);
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            }
+        );
+    });
+}
+
+module.exports = { initDatabase, saveUser, getMinecraftUsername, getBasketIdent, removeUser };
