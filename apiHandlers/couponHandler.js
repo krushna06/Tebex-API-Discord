@@ -4,26 +4,30 @@ module.exports = {
     /**
      * Apply a coupon to the user's basket.
      */
-    async applyCoupon({ discordUserId, couponCode, db, token }) {
+    async applyCoupon({ discordUserId, couponCode, db }) {
         const { getBasketIdent } = require('../utility/databaseHandler');
+        const apiKey = process.env.TEBEX_API_KEY;
+        const baseUrl = process.env.BASE_URL;
+
         const basketIdent = await getBasketIdent(db, discordUserId);
         if (!basketIdent) {
             throw new Error('No basket found for your account. Please log in first using the `/login` command.');
         }
 
-        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/coupons`;
+        const apiUrl = `${baseUrl}/accounts/${apiKey}/baskets/${basketIdent}/coupons`;
 
         try {
             const response = await axios.post(apiUrl, { coupon_code: couponCode }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tebex-Secret': token,
+                    'X-Tebex-Secret': apiKey,
                 },
             });
 
             return response.data;
         } catch (error) {
             console.error('Error applying coupon:', error);
+
             if (error.response) {
                 const statusCode = error.response.status;
                 const errorDetail = error.response.data?.detail;
@@ -43,20 +47,23 @@ module.exports = {
     /**
      * Remove a coupon from the user's basket.
      */
-    async removeCoupon({ discordUserId, couponCode, db, token }) {
+    async removeCoupon({ discordUserId, couponCode, db }) {
         const { getBasketIdent } = require('../utility/databaseHandler');
+        const apiKey = process.env.TEBEX_API_KEY;
+        const baseUrl = process.env.BASE_URL;
+
         const basketIdent = await getBasketIdent(db, discordUserId);
         if (!basketIdent) {
             throw new Error('No basket found for your account. Please log in first using the `/login` command.');
         }
 
-        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/coupons/remove`;
+        const apiUrl = `${baseUrl}/accounts/${apiKey}/baskets/${basketIdent}/coupons/remove`;
 
         try {
             await axios.post(apiUrl, { coupon_code: couponCode }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tebex-Secret': token,
+                    'X-Tebex-Secret': apiKey,
                 },
             });
 

@@ -1,9 +1,12 @@
 const axios = require('axios');
 
 module.exports = {
-    async applyCreatorCode({ discordUserId, creatorCode, db, token, interaction }) {
-        if (!token) {
-            throw new Error('Tebex API token is missing.');
+    async applyCreatorCode({ discordUserId, creatorCode, db, interaction }) {
+        const apiKey = process.env.TEBEX_API_KEY;
+        const baseUrl = process.env.BASE_URL;
+
+        if (!apiKey) {
+            throw new Error('Tebex API key is missing.');
         }
 
         const { getBasketIdent } = require('../utility/databaseHandler');
@@ -14,13 +17,13 @@ module.exports = {
             return;
         }
 
-        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/creator-codes`;
+        const apiUrl = `${baseUrl}/accounts/${apiKey}/baskets/${basketIdent}/creator-codes`;
 
         try {
             const response = await axios.post(apiUrl, { creator_code: creatorCode }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tebex-Secret': token,
+                    'X-Tebex-Secret': apiKey,
                 },
             });
 
@@ -32,9 +35,12 @@ module.exports = {
         }
     },
 
-    async removeCreatorCode({ discordUserId, db, token }) {
-        if (!token) {
-            throw new Error('Tebex API token is missing.');
+    async removeCreatorCode({ discordUserId, db }) {
+        const apiKey = process.env.TEBEX_API_KEY;
+        const baseUrl = process.env.BASE_URL;
+
+        if (!apiKey) {
+            throw new Error('Tebex API key is missing.');
         }
 
         const { getBasketIdent } = require('../utility/databaseHandler');
@@ -44,13 +50,13 @@ module.exports = {
             throw new Error('No basket found for your account. Please link your account first.');
         }
 
-        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/creator-codes/remove`;
+        const apiUrl = `${baseUrl}/accounts/${apiKey}/baskets/${basketIdent}/creator-codes/remove`;
 
         try {
             const response = await axios.post(apiUrl, {}, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tebex-Secret': token,
+                    'X-Tebex-Secret': apiKey,
                 },
             });
 

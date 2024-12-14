@@ -4,21 +4,23 @@ module.exports = {
     /**
      * Apply a gift card to the user's basket.
      */
-    async applyGiftCard({ discordUserId, giftCardNumber, db, token }) {
+    async applyGiftCard({ discordUserId, giftCardNumber, db }) {
         const { getBasketIdent } = require('../utility/databaseHandler');
+        const apiKey = process.env.TEBEX_API_KEY;
+        const baseUrl = process.env.BASE_URL;
 
         const basketIdent = await getBasketIdent(db, discordUserId);
         if (!basketIdent) {
             throw new Error('No basket found for your account. Please log in first using the `/login` command.');
         }
 
-        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/giftcards`;
+        const apiUrl = `${baseUrl}/accounts/${apiKey}/baskets/${basketIdent}/giftcards`;
 
         try {
             const response = await axios.post(apiUrl, { card_number: giftCardNumber }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tebex-Secret': token,
+                    'X-Tebex-Secret': apiKey,
                 },
             });
 
@@ -46,22 +48,23 @@ module.exports = {
     /**
      * Remove a gift card from the user's basket.
      */
-    async removeGiftCard({ discordUserId, giftCardNumber, db, token }) {
+    async removeGiftCard({ discordUserId, giftCardNumber, db }) {
         const { getBasketIdent } = require('../utility/databaseHandler');
+        const apiKey = process.env.TEBEX_API_KEY;
+        const baseUrl = process.env.BASE_URL;
 
-        // Retrieve basket identifier for the user
         const basketIdent = await getBasketIdent(db, discordUserId);
         if (!basketIdent) {
             throw new Error('No basket found for your account. Please log in first using the `/login` command.');
         }
 
-        const apiUrl = `https://headless.tebex.io/api/accounts/${token}/baskets/${basketIdent}/giftcards/remove`;
+        const apiUrl = `${baseUrl}/accounts/${apiKey}/baskets/${basketIdent}/giftcards/remove`;
 
         try {
             const response = await axios.post(apiUrl, { card_number: giftCardNumber }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tebex-Secret': token,
+                    'X-Tebex-Secret': apiKey,
                 },
             });
 
