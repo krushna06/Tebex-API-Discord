@@ -3,6 +3,7 @@ const handleLoginButton = require('./buttons/loginButton');
 const handleViewCartButton = require('./buttons/viewCartButton');
 const handleViewCategoriesButton = require('./buttons/viewCategoriesButton');
 const handleLoginModal = require('./modals/loginModal');
+const handleCategoryButton = require('./buttons/categoryButton');
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -19,6 +20,8 @@ module.exports = {
                     await handleViewCartButton(interaction, client);
                 } else if (interaction.customId === 'view_categories_button') {
                     await handleViewCategoriesButton(interaction, client);
+                } else if (interaction.customId.startsWith('category_')) {
+                    await handleCategoryButton(interaction, client);
                 }
             } else if (interaction.isModalSubmit()) {
                 if (interaction.customId === 'login_modal') {
