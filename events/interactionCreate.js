@@ -115,13 +115,31 @@ module.exports = {
                         .setTitle('Available Categories')
                         .setColor(0x00FF00)
                         .setDescription(
-                            categories.map((category) => `- **${category.name}**`).join('\n')
+                            categories
+                                .map((category, index) => `${index + 1} - **${category.name}**`)
+                                .join('\n')
                         )
                         .setFooter({
-                            text: 'Use /addpackage to add items from these categories to your basket!',
+                            text: 'Click a button below to view packages in the corresponding category.',
                         });
 
-                    await interaction.reply({ embeds: [embed], ephemeral: true });
+                    const actionRow = new ActionRowBuilder();
+                    categories.forEach((category, index) => {
+                        actionRow.addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`category_${index}`)
+                                .setLabel(`${index + 1}`)
+                                .setStyle(ButtonStyle.Primary)
+                        );
+                    });
+
+                    await interaction.reply({
+                        embeds: [embed],
+                        components: [actionRow],
+                        ephemeral: true,
+                    });
+
+                    client.cachedCategories = categories;
                 } catch (error) {
                     console.error('Error fetching categories:', error);
                     await interaction.reply({
@@ -129,6 +147,42 @@ module.exports = {
                         ephemeral: true,
                     });
                 }
+            } else if (interaction.customId.startsWith('category_')) {
+                const categoryIndex = parseInt(interaction.customId.split('_')[1], 10);
+                const category = client.cachedCategories[categoryIndex];
+
+                if (!category) {
+                    return interaction.reply({
+                        content: 'Category not found. Please try again.',
+                        ephemeral: true,
+                    });
+                }
+
+                if (!category.packages || category.packages.length === 0) {
+                    return interaction.reply({
+                        content: `No packages are available in the "${category.name}" category.`,
+                        ephemeral: true,
+                    });
+                }
+
+                const embed = new EmbedBuilder()
+                    .setTitle(`Packages in "${category.name}"`)
+                    .setColor(0x00A2E8)
+                    .setDescription(
+                        category.packages
+                            .map(
+                                (pkg) => `- **${pkg.name}**: $${pkg.total_price.toFixed(2)} ${pkg.currency}`
+                            )
+                            .join('\n')
+                    )
+                    .setFooter({
+                        text: 'Use /addpackage to add items to your basket!',
+                    });
+
+                await interaction.reply({
+                    embeds: [embed],
+                    ephemeral: true,
+                });
             }
         } else if (interaction.isModalSubmit()) {
             if (interaction.customId === 'login_modal') {
