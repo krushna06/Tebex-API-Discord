@@ -33,7 +33,7 @@ setInterval(async () => {
     const now = Date.now();
 
     for (const [userId, loginTime] of client.userLoginTimestamps.entries()) {
-        if (now - loginTime > 60000) { // 1 minute = 60000 ms
+        if (now - loginTime > 8.64e+10) {
             try {
                 await removeUser(client.db, userId);
                 console.log(`User ${userId} has been logged out automatically.`);
@@ -44,5 +44,6 @@ setInterval(async () => {
         }
     }
 }, 60000);
+
 
 client.login(process.env.DISCORD_TOKEN);
