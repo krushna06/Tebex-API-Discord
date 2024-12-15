@@ -10,7 +10,27 @@ module.exports = {
                 .setName('category')
                 .setDescription('The category to view packages from')
                 .setRequired(true)
+                .setAutocomplete(true)
         ),
+    async autocomplete(interaction) {
+        try {
+            const focusedValue = interaction.options.getFocused();
+
+            const categories = await fetchCategoriesWithPackages();
+
+            const choices = categories.map(cat => cat.name);
+            const filteredChoices = choices.filter(choice =>
+                choice.toLowerCase().startsWith(focusedValue.toLowerCase())
+            );
+
+            await interaction.respond(
+                filteredChoices.map(choice => ({ name: choice, value: choice }))
+            );
+        } catch (error) {
+            console.error('Error fetching categories for autocomplete:', error);
+            await interaction.respond([]);
+        }
+    },
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
