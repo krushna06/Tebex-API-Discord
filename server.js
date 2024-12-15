@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const sqlite3 = require('sqlite3').verbose();
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
@@ -48,6 +49,50 @@ function removeBasketIdent(minecraftUsername) {
     });
 }
 
+async function sendToDiscord(username, total, paymentMethod, transactionId) {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const embed = {
+        embeds: [
+            {
+                title: 'Payment Completed',
+                color: 5814783,
+                fields: [
+                    {
+                        name: 'Username',
+                        value: username,
+                        inline: true,
+                    },
+                    {
+                        name: 'Total',
+                        value: `$${total}`,
+                        inline: true,
+                    },
+                    {
+                        name: 'Payment Method',
+                        value: paymentMethod,
+                        inline: true,
+                    },
+                    {
+                        name: 'View Transaction',
+                        value: `[Click Here](https://creator.tebex.io/payments?attribute%5B0%5D=txn_id&query%5B0%5D=${transactionId}&search_mode=and)`,
+                    },
+                ],
+                footer: {
+                    text: 'Tebex Payment Notification',
+                },
+                timestamp: new Date(),
+            },
+        ],
+    };
+
+    try {
+        await axios.post(webhookUrl, embed);
+        console.log('Embed message sent to Discord successfully.');
+    } catch (error) {
+        console.error('Error sending message to Discord:', error.message);
+    }
+}
+
 app.post('/payment_completed', async (req, res) => {
     try {
         const secret = process.env.WEBHOOK_SECRET;
@@ -66,9 +111,11 @@ app.post('/payment_completed', async (req, res) => {
 
         if (payload.type === 'payment.completed') {
             console.log('Payment completed webhook received.');
-            console.log('Payload:', JSON.stringify(payload, null, 2));
 
             const minecraftUsername = payload.subject.customer.username.username;
+            const totalAmount = payload.subject.price_paid.amount;
+            const paymentMethod = payload.subject.payment_method.name;
+            const transactionId = payload.subject.transaction_id;
 
             if (minecraftUsername) {
                 const basketRemoved = await removeBasketIdent(minecraftUsername);
@@ -77,12 +124,12 @@ app.post('/payment_completed', async (req, res) => {
                 } else {
                     console.log('No basket_ident to remove for this username.');
                 }
+                await sendToDiscord(minecraftUsername, totalAmount, paymentMethod, transactionId);
             } else {
                 console.warn('No Minecraft username found in payload.');
             }
         } else {
             console.warn(`Unhandled webhook type: ${payload.type}`);
-            console.log('Payload:', JSON.stringify(payload, null, 2));
         }
 
         res.status(200).send('Webhook received');
