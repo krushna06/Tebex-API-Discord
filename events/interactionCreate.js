@@ -4,6 +4,7 @@ const { saveUser } = require('../utility/databaseHandler');
 const { getBasketDetails } = require('../apiHandlers/packageHandler');
 const { getMinecraftUsername } = require('../utility/databaseHandler');
 const { fetchMinecraftProfile } = require('../apiHandlers/profileHandler');
+const { fetchCategoriesWithPackages } = require('../apiHandlers/viewHandler');
 
 module.exports = {
     name: 'interactionCreate',
@@ -96,6 +97,35 @@ module.exports = {
                     console.error('Error fetching basket details:', error);
                     await interaction.reply({
                         content: 'An error occurred while fetching your basket details.',
+                        ephemeral: true,
+                    });
+                }
+            } else if (interaction.customId === 'view_categories_button') {
+                try {
+                    const categories = await fetchCategoriesWithPackages();
+
+                    if (!categories.length) {
+                        return interaction.reply({
+                            content: 'No categories are currently available.',
+                            ephemeral: true,
+                        });
+                    }
+
+                    const embed = new EmbedBuilder()
+                        .setTitle('Available Categories')
+                        .setColor(0x00FF00)
+                        .setDescription(
+                            categories.map((category) => `- **${category.name}**`).join('\n')
+                        )
+                        .setFooter({
+                            text: 'Use /addpackage to add items from these categories to your basket!',
+                        });
+
+                    await interaction.reply({ embeds: [embed], ephemeral: true });
+                } catch (error) {
+                    console.error('Error fetching categories:', error);
+                    await interaction.reply({
+                        content: 'An error occurred while fetching category information.',
                         ephemeral: true,
                     });
                 }
