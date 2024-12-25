@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, TEBEX_API_KEY } = process.env;
+const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, TEBEX_API_KEY, RAZORPAY_CALLBACK_URL } = process.env;
 
 async function fetchBasketDetails(basketIdent) {
     if (!basketIdent || !TEBEX_API_KEY) {
@@ -59,7 +59,7 @@ async function generateRazorpayLink(basketIdent) {
             email: true,
             sms: false,
         },
-        callback_url: basketDetails.links.checkout || 'https://yourdomain.com/callback',
+        callback_url: RAZORPAY_CALLBACK_URL || 'https://yourdomain.com/callback',
         callback_method: 'get',
     };
 
