@@ -23,6 +23,8 @@ module.exports = {
                     await handleViewCategoriesButton(interaction, client);
                 } else if (interaction.customId.startsWith('category_')) {
                     await handleCategoryButton(interaction, client);
+                } else if (interaction.customId.startsWith('add_to_cart_')) {
+                    await require('./buttons/addToCartButton')(interaction, client);                
                 } else if (interaction.customId.startsWith('package_')) {
                     await require('./buttons/packageButton')(interaction, client);
                 } else if (interaction.customId === 'previous_page' || interaction.customId === 'next_page') {

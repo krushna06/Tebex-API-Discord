@@ -1,4 +1,6 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { addPackageToBasket } = require('../../apiHandlers/packageHandler');
+const { getMinecraftUsername } = require('../../utility/databaseHandler');
 
 module.exports = async (interaction, client) => {
     try {
@@ -21,10 +23,18 @@ module.exports = async (interaction, client) => {
                 { name: 'ID', value: pkg.id.toString(), inline: true },
                 { name: 'Description', value: pkg.description || 'No description available.', inline: false }
             )
-            .setFooter({ text: 'Use /addpackage to add this item to your basket!' });
+            .setFooter({ text: 'Click "Add to Cart" to add this item to your basket!' });
+
+        const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`add_to_cart_${pkg.id}`)
+                .setLabel('Add to Cart')
+                .setStyle(ButtonStyle.Success)
+        );
 
         await interaction.reply({
             embeds: [embed],
+            components: [actionRow],
             ephemeral: true,
         });
     } catch (error) {
