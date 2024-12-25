@@ -23,6 +23,8 @@ module.exports = {
                     await handleViewCategoriesButton(interaction, client);
                 } else if (interaction.customId.startsWith('category_')) {
                     await handleCategoryButton(interaction, client);
+                } else if (interaction.customId.startsWith('package_')) {
+                    await require('./buttons/packageButton')(interaction, client);
                 } else if (interaction.customId === 'previous_page' || interaction.customId === 'next_page') {
                     await interaction.deferUpdate(); // Defer to avoid timing out
                 

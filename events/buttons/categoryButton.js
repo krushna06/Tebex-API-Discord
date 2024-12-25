@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = async (interaction, client) => {
     try {
@@ -24,18 +24,35 @@ module.exports = async (interaction, client) => {
             .setColor(0x00A2E8)
             .setDescription(
                 category.packages
-                    .map(
-                        (pkg) =>
-                            `- **${pkg.name}**: $${pkg.total_price.toFixed(2)} ${pkg.currency}`
-                    )
+                    .map((pkg, index) => `**${index + 1}** - ${pkg.name}`)
                     .join('\n')
             )
             .setFooter({
-                text: 'Use /addpackage to add items to your basket!',
+                text: 'Click a button below to view details of the corresponding package.',
             });
+
+        const actionRows = [];
+        let currentRow = new ActionRowBuilder();
+
+        category.packages.forEach((pkg, index) => {
+            const button = new ButtonBuilder()
+                .setCustomId(`package_${categoryIndex}_${index}`)
+                .setLabel((index + 1).toString())
+                .setStyle(ButtonStyle.Primary);
+
+            if (currentRow.components.length < 5) {
+                currentRow.addComponents(button);
+            } else {
+                actionRows.push(currentRow);
+                currentRow = new ActionRowBuilder().addComponents(button);
+            }
+        });
+
+        if (currentRow.components.length > 0) actionRows.push(currentRow);
 
         await interaction.reply({
             embeds: [embed],
+            components: actionRows,
             ephemeral: true,
         });
     } catch (error) {
