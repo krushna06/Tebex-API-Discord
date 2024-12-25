@@ -17,7 +17,7 @@ const db = new sqlite3.Database('./database/users.sqlite', (err) => {
 
 app.use(express.raw({ type: 'application/json' }));
 
-function validateSignature(req, secret) {
+function validateTebexSignature(req, secret) {
     const receivedSignature = req.headers['x-signature'];
     const rawBody = req.body.toString();
     const bodyHash = crypto.createHash('sha256').update(rawBody).digest('hex');
@@ -27,6 +27,16 @@ function validateSignature(req, secret) {
         .digest('hex');
 
     return receivedSignature === expectedSignature;
+}
+
+function validateRazorpaySignature(req, secret) {
+    const receivedSignature = req.headers['x-razorpay-signature'];
+    const generatedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(req.body)
+        .digest('hex');
+
+    return receivedSignature === generatedSignature;
 }
 
 function removeBasketIdent(minecraftUsername) {
@@ -93,12 +103,56 @@ async function sendToDiscord(username, total, paymentMethod, transactionId) {
     }
 }
 
-app.post('/payment_completed', async (req, res) => {
+async function sendToDiscordRazorpay(username, total, paymentMethod, transactionId) {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const embed = {
+        embeds: [
+            {
+                title: 'Razorpay Payment Completed',
+                color: 5814783,
+                fields: [
+                    {
+                        name: 'Username',
+                        value: username,
+                        inline: true,
+                    },
+                    {
+                        name: 'Total',
+                        value: `₹${total}`,
+                        inline: true,
+                    },
+                    {
+                        name: 'Payment Method',
+                        value: paymentMethod,
+                        inline: true,
+                    },
+                    {
+                        name: 'View Transaction',
+                        value: `[Click Here](https://dashboard.razorpay.com/app/payments/${transactionId})`,
+                    },
+                ],
+                footer: {
+                    text: 'Razorpay Payment Notification',
+                },
+                timestamp: new Date(),
+            },
+        ],
+    };
+
+    try {
+        await axios.post(webhookUrl, embed);
+        console.log('Razorpay embed message sent to Discord successfully.');
+    } catch (error) {
+        console.error('Error sending Razorpay message to Discord:', error.message);
+    }
+}
+
+app.post('/payment_completed_tebex', async (req, res) => {
     try {
         const secret = process.env.WEBHOOK_SECRET;
 
-        if (!validateSignature(req, secret)) {
-            console.error('Invalid signature');
+        if (!validateTebexSignature(req, secret)) {
+            console.error('Invalid Tebex signature');
             return res.status(403).send('Forbidden');
         }
 
@@ -129,12 +183,53 @@ app.post('/payment_completed', async (req, res) => {
                 console.warn('No Minecraft username found in payload.');
             }
         } else {
-            console.warn(`Unhandled webhook type: ${payload.type}`);
+            console.warn(`Unhandled Tebex webhook type: ${payload.type}`);
         }
 
-        res.status(200).send('Webhook received');
+        res.status(200).send('Tebex webhook received');
     } catch (error) {
-        console.error('Error handling webhook:', error.message);
+        console.error('Error handling Tebex webhook:', error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.post('/payment_completed_razorpay', async (req, res) => {
+    try {
+        const secret = 'GmKHiA.Wptm3iaU';
+
+        if (!validateRazorpaySignature(req, secret)) {
+            console.error('Invalid Razorpay signature');
+            return res.status(403).send('Forbidden');
+        }
+
+        const payload = JSON.parse(req.body.toString());
+        console.log('Razorpay payment_link.paid event received:');
+        console.log(JSON.stringify(payload, null, 2));
+
+        const paymentDetails = payload.payload.payment.entity;
+        const paymentLinkDetails = payload.payload.payment_link.entity;
+
+        const username = paymentLinkDetails.customer.name || 'Unknown User';
+        const totalAmount = paymentDetails.amount / 100;
+        const paymentMethod = paymentDetails.method || 'Unknown Method';
+        const transactionId = paymentDetails.id;
+
+        if (username) {
+            const basketRemoved = await removeBasketIdent(username);
+            if (basketRemoved) {
+                console.log('Basket_ident removed successfully.');
+            } else {
+                console.log('No basket_ident to remove for this username.');
+            }
+
+            await sendToDiscordRazorpay(username, totalAmount, paymentMethod, transactionId);
+        } else {
+            console.warn('No username found in Razorpay payment details.');
+        }
+
+        res.status(200).send('Razorpay webhook received');
+    } catch (error) {
+        console.error('Error handling Razorpay webhook:', error.message);
         res.status(500).send('Internal Server Error');
     }
 });
