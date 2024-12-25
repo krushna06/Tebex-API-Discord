@@ -1,12 +1,12 @@
 const axios = require('axios');
-const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, TEBEX_API_KEY } = process.env;
 
-async function fetchBasketDetails(basketIdent, tebexToken) {
-    if (!basketIdent || !tebexToken) {
-        throw new Error('Basket identifier and Tebex token are required.');
+async function fetchBasketDetails(basketIdent) {
+    if (!basketIdent || !TEBEX_API_KEY) {
+        throw new Error('Basket identifier and Tebex API key are required.');
     }
 
-    const tebexApiUrl = `https://headless.tebex.io/api/accounts/${tebexToken}/baskets/${basketIdent}`;
+    const tebexApiUrl = `https://headless.tebex.io/api/accounts/${TEBEX_API_KEY}/baskets/${basketIdent}`;
 
     try {
         const response = await axios.get(tebexApiUrl, {
@@ -22,8 +22,8 @@ async function fetchBasketDetails(basketIdent, tebexToken) {
     }
 }
 
-async function generateRazorpayLink(basketIdent, tebexToken) {
-    const basketDetails = await fetchBasketDetails(basketIdent, tebexToken);
+async function generateRazorpayLink(basketIdent) {
+    const basketDetails = await fetchBasketDetails(basketIdent);
 
     let totalPrice = basketDetails.total_price;
     const baseCurrency = basketDetails.currency || 'USD';
