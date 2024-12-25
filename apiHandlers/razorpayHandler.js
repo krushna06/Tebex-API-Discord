@@ -53,7 +53,7 @@ async function generateRazorpayLink(basketIdent) {
         description: packageDescription.trim(),
         customer: {
             name: username,
-            email: basketDetails.email || 'user@example.com',
+            email: `${username}@discord.com`,
         },
         notify: {
             email: true,
