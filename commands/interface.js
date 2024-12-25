@@ -8,7 +8,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setTitle('Store Interface')
             .setDescription(
-                'Click **Login** to link your username, **View Cart** to see your current basket, or **View Categories** to explore the store.'
+                '- Click **Login** to link your username\n - **View Cart** to see your current basket\n - **View Categories** to explore the store.'
             )
             .setColor(0x00AE86);
 
