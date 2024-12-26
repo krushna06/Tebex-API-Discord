@@ -40,10 +40,15 @@ async function generateRazorpayLink(basketIdent) {
     }
 
     let packageDescription = `Payment for items in basket (${username})\n`;
+    const packageIds = [];
+
     basketDetails.packages.forEach(pkg => {
         const packagePriceInINR = pkg.in_basket.price * conversionRate;
         packageDescription += `- ${pkg.name}: ₹ ${Math.round(packagePriceInINR)}\n`;
+        packageIds.push(pkg.id);
     });
+
+    packageDescription += `\nPackages: ${packageIds.join(', ')}`;
 
     const razorpayApiUrl = 'https://api.razorpay.com/v1/payment_links';
 
@@ -77,6 +82,7 @@ async function generateRazorpayLink(basketIdent) {
         throw new Error('Failed to create Razorpay payment link.');
     }
 }
+
 
 module.exports = {
     generateRazorpayLink,

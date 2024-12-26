@@ -210,11 +210,14 @@ app.post('/payment_completed_razorpay', async (req, res) => {
         const paymentLinkDetails = payload.payload.payment_link.entity;
 
         const username = paymentLinkDetails.customer.name || 'Unknown User';
-        const totalAmount = paymentDetails.amount / 100;
-        const paymentMethod = paymentDetails.method || 'Unknown Method';
-        const transactionId = paymentDetails.id;
+        const totalAmountInRupees = paymentDetails.amount / 100; 
+        const totalAmountInDollars = (totalAmountInRupees / 85).toFixed(2);
+        const description = paymentLinkDetails.description;
 
-        if (username) {
+        const packageIdsMatch = description.match(/Packages: ([\d, ]+)/);
+        const packageIds = packageIdsMatch ? packageIdsMatch[1].split(',').map(id => id.trim()) : [];
+
+        if (username && packageIds.length > 0) {
             const basketRemoved = await removeBasketIdent(username);
             if (basketRemoved) {
                 console.log('Basket_ident removed successfully.');
@@ -222,9 +225,9 @@ app.post('/payment_completed_razorpay', async (req, res) => {
                 console.log('No basket_ident to remove for this username.');
             }
 
-            await sendToDiscordRazorpay(username, totalAmount, paymentMethod, transactionId);
+            await createPaymentOnTebex(username, totalAmountInDollars, packageIds, 'Razorpay automated payment');
         } else {
-            console.warn('No username found in Razorpay payment details.');
+            console.warn('Insufficient data to create payment: Missing username or package IDs.');
         }
 
         res.status(200).send('Razorpay webhook received');
@@ -233,6 +236,30 @@ app.post('/payment_completed_razorpay', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
+async function createPaymentOnTebex(username, price, packageIds, note) {
+    const tebexApiUrl = 'https://plugin.tebex.io/payments';
+    const paymentPayload = {
+        ign: username,
+        price: price,
+        packages: packageIds.map(id => ({ id: parseInt(id, 10) })),
+        note: note,
+    };
+
+    try {
+        const response = await axios.post(tebexApiUrl, paymentPayload, {
+            headers: {
+                'X-Tebex-Secret': process.env.TEBEX_SECRET_KEY,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        console.log(`Payment created successfully for username: ${username}, price: ${price}, packages: ${packageIds}`);
+        console.log('Response from Tebex:', response.data);
+    } catch (error) {
+        console.error('Error creating payment on Tebex:', error.response?.data || error.message);
+    }
+}
 
 app.listen(port, () => {
     console.log(`Webhook server running on port ${port}`);
