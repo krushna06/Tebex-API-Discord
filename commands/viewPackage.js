@@ -45,6 +45,10 @@ module.exports = {
                 )
                 .setFooter({ text: 'Use /addpackage to add this item to your basket!' });
 
+            if (foundPackage.image) {
+                embed.setThumbnail(foundPackage.image);
+            }
+
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             console.error('Error executing /viewpackage command:', error);
