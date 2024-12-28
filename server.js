@@ -11,7 +11,7 @@ const db = new sqlite3.Database('./database/users.sqlite', (err) => {
     if (err) {
         console.error('Error connecting to SQLite database:', err.message);
     } else {
-        console.log('Connected to SQLite database.');
+        // console.log('Connected to SQLite database.');
     }
 });
 
