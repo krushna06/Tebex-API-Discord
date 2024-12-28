@@ -25,6 +25,10 @@ module.exports = async (interaction, client) => {
             )
             .setFooter({ text: 'Click "Add to Cart" to add this item to your basket!' });
 
+        if (pkg.image) {
+            embed.setThumbnail(pkg.image);
+        }
+
         const actionRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`add_to_cart_${pkg.id}`)
