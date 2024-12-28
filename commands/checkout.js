@@ -3,20 +3,27 @@ const { getMinecraftUsername, getBasketIdent } = require('../utility/databaseHan
 const { generateCheckoutLink } = require('../apiHandlers/checkoutHandler');
 const { generateRazorpayLink } = require('../apiHandlers/razorpayHandler');
 
+const enableRazorpay = process.env.RAZORPAY === 'true';
+
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('checkout')
-        .setDescription('Get the checkout link for your basket.')
-        .addStringOption(option =>
-            option
-                .setName('type')
-                .setDescription('Choose the payment type (Tebex or Razorpay)')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Tebex', value: 'tebex' },
-                    { name: 'Razorpay (UPI)', value: 'razorpay' }
-                )
-        ),
+    data: (() => {
+        const command = new SlashCommandBuilder()
+            .setName('checkout')
+            .setDescription('Get the checkout link for your basket.')
+            .addStringOption(option => {
+                option
+                    .setName('type')
+                    .setDescription('Choose the payment type')
+                    .setRequired(true);
+
+                option.addChoices({ name: 'Tebex', value: 'tebex' });
+                if (enableRazorpay) {
+                    option.addChoices({ name: 'Razorpay (UPI)', value: 'razorpay' });
+                }
+                return option;
+            });
+        return command;
+    })(),
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -42,6 +49,9 @@ module.exports = {
             if (paymentType === 'tebex') {
                 checkoutLink = await generateCheckoutLink(basketIdent);
             } else if (paymentType === 'razorpay') {
+                if (!enableRazorpay) {
+                    return interaction.editReply('Razorpay is currently disabled.');
+                }
                 checkoutLink = await generateRazorpayLink(basketIdent, process.env.TEBEX_TOKEN);
             } else {
                 return interaction.editReply('Invalid payment type selected.');
