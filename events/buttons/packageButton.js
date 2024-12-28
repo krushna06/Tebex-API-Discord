@@ -1,6 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { addPackageToBasket } = require('../../apiHandlers/packageHandler');
-const { getMinecraftUsername } = require('../../utility/databaseHandler');
+const { htmlToText } = require('html-to-text');
 
 module.exports = async (interaction, client) => {
     try {
@@ -15,13 +14,23 @@ module.exports = async (interaction, client) => {
             });
         }
 
+        const descriptionText = pkg.description
+            ? htmlToText(pkg.description, { wordwrap: 130 })
+            : 'No description available.';
+
         const embed = new EmbedBuilder()
             .setTitle(`Package Details: ${pkg.name}`)
             .setColor(0x00A2E8)
             .addFields(
                 { name: 'Price', value: `$${pkg.total_price.toFixed(2)} ${pkg.currency}`, inline: true },
                 { name: 'ID', value: pkg.id.toString(), inline: true },
-                { name: 'Description', value: pkg.description || 'No description available.', inline: false }
+                { 
+                    name: 'Description', 
+                    value: descriptionText.length > 1024 
+                        ? `${descriptionText.slice(0, 1021)}...` 
+                        : descriptionText, 
+                    inline: false 
+                }
             )
             .setFooter({ text: 'Click "Add to Cart" to add this item to your basket!' });
 

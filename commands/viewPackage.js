@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { fetchCategoriesWithPackages } = require('../apiHandlers/viewHandler');
+const { htmlToText } = require('html-to-text');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -35,13 +36,23 @@ module.exports = {
                 return interaction.editReply(`No package found with the name or ID "${identifier}".`);
             }
 
+            const descriptionText = foundPackage.description
+                ? htmlToText(foundPackage.description, { wordwrap: 130 })
+                : 'No description available.';
+
             const embed = new EmbedBuilder()
                 .setTitle(`Package Details: ${foundPackage.name}`)
                 .setColor(0x00A2E8)
                 .addFields(
                     { name: 'Price', value: `$${foundPackage.total_price.toFixed(2)} ${foundPackage.currency}`, inline: true },
                     { name: 'ID', value: foundPackage.id.toString(), inline: true },
-                    { name: 'Description', value: foundPackage.description || 'No description available.', inline: false }
+                    { 
+                        name: 'Description', 
+                        value: descriptionText.length > 1024 
+                            ? `${descriptionText.slice(0, 1021)}...` 
+                            : descriptionText, 
+                        inline: false 
+                    }
                 )
                 .setFooter({ text: 'Use /addpackage to add this item to your basket!' });
 
