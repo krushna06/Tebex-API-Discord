@@ -10,3 +10,5 @@ Tebex-Cord is a simple yet powerful Discord bot built with Discord.js that integ
 - **Payment Notifications**: Receive real-time payment notifications logged directly in Discord for easy tracking.
 
 With Tebex-Cord, you can manage your Tebex store and enhance your Discord community experience effortlessly.
+
+Need some changes
